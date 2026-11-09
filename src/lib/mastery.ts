@@ -69,6 +69,13 @@ export async function recordEvidence(userId: string, skillKey: string, evidence:
       }
     });
     const previous = Array.isArray(row.evidence) ? row.evidence.filter(isEvidence) : [];
+    const duplicate = normalized.note && previous.some((item) =>
+      item.kind === normalized.kind &&
+      item.correct === normalized.correct &&
+      item.note === normalized.note
+    );
+    if (duplicate) return row;
+
     const kept = [...previous, normalized].slice(-50);
     const score = scoreEvidence(kept);
     const state = stateForScore(score);

@@ -18,7 +18,9 @@ export async function GET(
     });
     if (!problem) throw new Error("NOT_FOUND");
 
-    const { referenceCode: _reference, editorial: _editorial, ...safeProblem } = problem;
+    const safeProblem: Partial<typeof problem> = { ...problem };
+    delete safeProblem.referenceCode;
+    delete safeProblem.editorial;
     return ok({
       ...safeProblem,
       editorialAvailable: Boolean(problem.editorial)

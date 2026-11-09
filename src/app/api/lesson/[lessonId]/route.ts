@@ -8,13 +8,30 @@ export async function GET(
   try {
     const lesson = await prisma.lesson.findUnique({
       where: { id: params.lessonId },
-      include: { steps: { orderBy: { order: "asc" } } }
+      include: {
+        steps: {
+          orderBy: { order: "asc" },
+          // Quiz answers are checked by the progress endpoint and never selected here.
+          select: {
+            id: true,
+            lessonId: true,
+            order: true,
+            kind: true,
+            title: true,
+            body: true,
+            starterCode: true,
+            expectedOutput: true,
+            testInput: true,
+            quizOptions: true,
+            hints: true,
+            skillKeys: true,
+            xpReward: true
+          }
+        }
+      }
     });
     if (!lesson) throw new Error("NOT_FOUND");
-
-    // Quiz answers are checked by the progress endpoint and never sent to the browser.
-    const steps = lesson.steps.map(({ quizAnswer: _answer, ...step }) => step);
-    return ok({ ...lesson, steps });
+    return ok(lesson);
   } catch (error) {
     return fail(error);
   }

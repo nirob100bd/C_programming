@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { ApiError, fail, ok, parseBody } from "@/lib/api";
 import { log } from "@/lib/activity";
+import { awardXp } from "@/lib/xp";
+import { recordEvidence } from "@/lib/mastery";
 import { cuid } from "@/lib/validation";
 
 const saveSchema = z.object({
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
       const step = await tx.lessonStep.findFirst({
         where: { id: input.stepId, lessonId: input.lessonId },
-        select: { kind: true, quizAnswer: true }
+        select: { id: true, kind: true, quizAnswer: true, skillKeys: true, xpReward: true }
       });
       if (!step) throw new ApiError("INVALID_STEP", 400, "The step does not belong to this lesson.");
 
@@ -63,15 +65,30 @@ export async function POST(request: Request) {
           completed: completed ?? false
         }
       });
-      return { progress, quizCorrect };
+      return {
+        progress,
+        quizCorrect,
+        skillKeys: step.skillKeys,
+        xpReward: step.xpReward
+      };
     });
 
+    if (result.quizCorrect) {
+      await awardXp(userId, result.xpReward, "lesson.step", input.stepId);
+      await Promise.all(result.skillKeys.map((skillKey) => recordEvidence(userId, skillKey, {
+        kind: "quiz",
+        correct: true,
+        weight: 2,
+        note: input.stepId,
+        at: new Date().toISOString()
+      })));
+    }
     await log(userId, "progress.saved", {
       lessonId: input.lessonId,
       stepId: input.stepId,
       completed: result.progress.completed
     });
-    return ok(result);
+    return ok({ progress: result.progress, quizCorrect: result.quizCorrect });
   } catch (error) {
     return fail(error);
   }
