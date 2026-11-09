@@ -1,0 +1,301 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  xp           Int      @default(0)
+  rank         String   @default("Beginner")
+  theme        String   @default("system")
+  editorFont   Int      @default(14)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  progress     Progress[]
+  submissions  Submission[]
+  xpEvents     XpEvent[]
+  mastery      SkillMastery[]
+  achievements UserAchievement[]
+  notes        Note[]
+  bookmarks    Bookmark[]
+  activities   Activity[]
+  projects     Project[]
+  sessions     LearningSession[]
+  revisions    RevisionItem[]
+  hintEvents   HintEvent[]
+}
+
+model Lesson {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  title         String
+  world         String
+  worldOrder    Int
+  order         Int
+  summary       String       @default("")
+  objectives    Json         @default("[]")
+  prerequisites String[]     @default([])
+  steps         LessonStep[]
+  createdAt     DateTime     @default(now())
+
+  @@index([world, worldOrder])
+}
+
+model LessonStep {
+  id             String   @id @default(cuid())
+  lessonId       String
+  lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  order          Int
+  kind           String   @default("read")
+  title          String
+  body           String   @db.Text
+  starterCode    String   @default("") @db.Text
+  expectedOutput String?  @db.Text
+  testInput      String?  @db.Text
+  quizOptions    Json?
+  quizAnswer     String?
+  hints          Json     @default("[]")
+  skillKeys      String[] @default([])
+  xpReward       Int      @default(10)
+
+  @@unique([lessonId, order])
+}
+
+model Progress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  stepId      String
+  code        String   @default("") @db.Text
+  lastSavedAt DateTime @default(now())
+  completed   Boolean  @default(false)
+  version     Int      @default(1)
+
+  @@unique([userId, lessonId])
+  @@index([userId, lastSavedAt])
+}
+
+model ProgressSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  stepId    String
+  code      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, lessonId, createdAt])
+}
+
+model Submission {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId  String?
+  lessonId   String?
+  sourceCode String   @db.Text
+  stdin      String   @default("") @db.Text
+  stdout     String?  @db.Text
+  stderr     String?  @db.Text
+  compile    String?  @db.Text
+  verdict    String?
+  timeMs     Int?
+  memoryKb   Int?
+  mode       String   @default("guided")
+  hintsUsed  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([problemId, createdAt])
+}
+
+model XpEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    String
+  key       String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model SkillMastery {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillKey  String
+  score     Int      @default(0)
+  state     String   @default("Not assessed")
+  evidence  Json     @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, skillKey])
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  world       String
+  description String   @default("")
+  prereqs     String[] @default([])
+  createdAt   DateTime @default(now())
+}
+
+model Problem {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  title              String
+  difficulty         String
+  tags               String[] @default([])
+  description        String   @db.Text
+  inputSpec          String   @db.Text
+  outputSpec         String   @db.Text
+  constraints        String   @db.Text
+  examples           Json     @default("[]")
+  starterCode        String   @default("") @db.Text
+  referenceCode      String   @default("") @db.Text
+  editorial          String   @default("") @db.Text
+  skillKeys          String[] @default([])
+  expectedComplexity String   @default("")
+  timeLimitMs        Int      @default(2000)
+  memoryLimitKb      Int      @default(128000)
+  createdAt          DateTime @default(now())
+
+  tests TestCase[]
+}
+
+model TestCase {
+  id        String  @id @default(cuid())
+  problemId String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input     String  @db.Text
+  expected  String  @db.Text
+  hidden    Boolean @default(true)
+  order     Int     @default(0)
+
+  @@index([problemId, order])
+}
+
+model HintEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId String?
+  stepId    String?
+  level     Int
+  createdAt DateTime @default(now())
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  key         String            @unique
+  name        String
+  description String
+  icon        String            @default("trophy")
+  hidden      Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  earnedAt      DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String?
+  problemId String?
+  title     String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  refId     String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, kind, refId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String   @default("")
+  files       Json     @default("[]")
+  activeFile  String   @default("main.c")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LearningSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  lastSeenAt DateTime  @default(now())
+
+  @@index([userId, startedAt])
+}
+
+model RevisionItem {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillKey   String
+  dueAt      DateTime
+  interval   Int      @default(1)
+  attempts   Int      @default(0)
+  lastResult String   @default("pending")
+
+  @@unique([userId, skillKey])
+  @@index([userId, dueAt])
+}
+
+model ReferenceEntry {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  category  String
+  title     String
+  body      String   @db.Text
+  examples  Json     @default("[]")
+  createdAt DateTime @default(now())
+}
