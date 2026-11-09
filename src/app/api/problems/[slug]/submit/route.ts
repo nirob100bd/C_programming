@@ -75,3 +75,5 @@ export async function POST(
     return fail(error);
   }
 }
+
+export const dynamic = "force-dynamic";

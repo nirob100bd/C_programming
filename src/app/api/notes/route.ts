@@ -33,3 +33,5 @@ export async function POST(request: Request) {
     return fail(error);
   }
 }
+
+export const dynamic = "force-dynamic";

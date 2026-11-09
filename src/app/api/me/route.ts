@@ -48,3 +48,5 @@ export async function PATCH(request: Request) {
     return fail(error);
   }
 }
+
+export const dynamic = "force-dynamic";

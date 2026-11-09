@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import useSWR from "swr";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Braces, FileCode2, FilePlus2, FolderPlus, Play, Save, Trash2, X } from "lucide-react";
 import { apiFetch, fetcher } from "@/lib/http";
@@ -27,7 +26,6 @@ function validFiles(value: unknown): FileEntry[] {
 }
 
 export default function IdePage() {
-  const searchParams = useSearchParams();
   const projectsQuery = useSWR<Project[]>("/api/projects", fetcher);
   const [activeId, setActiveId] = useState<string | null>(null);
   const projectQuery = useSWR<Project>(activeId ? `/api/projects/${activeId}` : null, fetcher);
@@ -43,10 +41,10 @@ export default function IdePage() {
 
   useEffect(() => {
     if (activeId || !projectsQuery.data?.length) return;
-    const requested = searchParams.get("project");
+    const requested = new URLSearchParams(window.location.search).get("project");
     const project = projectsQuery.data.find((item) => item.id === requested) ?? projectsQuery.data[0];
     setActiveId(project.id);
-  }, [activeId, projectsQuery.data, searchParams]);
+  }, [activeId, projectsQuery.data]);
 
   useEffect(() => {
     const project = projectQuery.data;

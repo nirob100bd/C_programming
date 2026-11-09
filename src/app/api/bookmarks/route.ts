@@ -45,3 +45,5 @@ export async function DELETE(request: Request) {
     return fail(error);
   }
 }
+
+export const dynamic = "force-dynamic";

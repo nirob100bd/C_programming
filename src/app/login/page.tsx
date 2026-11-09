@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const search = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +27,7 @@ export default function LoginPage() {
       setBusy(false);
       return;
     }
-    const callback = search.get("callbackUrl");
+    const callback = new URLSearchParams(window.location.search).get("callbackUrl");
     router.push(callback?.startsWith("/") ? callback : "/dashboard");
     router.refresh();
   }
