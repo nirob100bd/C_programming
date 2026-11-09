@@ -14,6 +14,7 @@
 - [x] Quiz answers/reference solutions/hidden tests withheld from ordinary public payloads
 - [x] Automated tests for every API method and all core business logic (71 passing tests at last update)
 - [x] README plus Judge0, deployment, and testing documentation
+- [x] Live PostgreSQL 18 verification: initial migration deployed, the seed completed twice idempotently, and persisted counts matched 78 skills, 12 achievements, 12 reference entries, 20 lessons, and 2 problems
 
 ## In progress
 
@@ -31,7 +32,7 @@
 - The IDE persists multiple files but compiles only the active `.c` translation unit; it does not pretend to provide a multi-file linker yet.
 - `Progress.completed` is lesson-level, so per-step completion checkmarks are not persisted independently.
 - Activity and progress snapshots need a production retention/pruning policy.
-- This workspace has no PostgreSQL or Judge0 daemon, so live migration/seed, real compilation, browser auth, and two-account acceptance checks remain external-service verification tasks. Unit/route tests do not simulate those runtime services.
+- No Judge0 daemon is available in this workspace, so real compilation and the browser/two-account acceptance flows that depend on judging remain external-service verification tasks. Unit/route tests do not simulate Judge0.
 
 ## Decisions made
 
@@ -46,7 +47,7 @@
 
 ## Next
 
-1. Run the documented PostgreSQL and Judge0 acceptance checklist in an environment with Docker services.
+1. Run the documented Judge0 and browser/two-account acceptance checklist in an environment with Judge0 services.
 2. Add a production-grade distributed rate limiter and retention jobs.
 3. Expand World 2–12 lesson/assessment content in the curriculum milestone.
 4. Add achievement evaluation and adaptive next-action recommendations.
