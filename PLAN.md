@@ -162,6 +162,14 @@ Added after the initial plan, per the follow-up "labs and deploy" request:
 6. `Dockerfile`, `docker-compose.yml`, `.dockerignore` — standalone production image, plus a PostgreSQL + migrate/seed + web stack (`docker compose up --build`).
 7. `README.md`, `docs/DEPLOYMENT.md`, `STATUS.md` — Docker usage and refreshed lab scope.
 
+## Milestone 15 — Full-stack Judge0 Docker integration
+
+Added after Milestone 14 to eliminate separate manual Judge0 setup and the Windows/WSL2 `/box/main.c` cgroup-v2 failure:
+
+1. `docker-compose.yml` — integrated `judge0-db`, `judge0-redis`, `judge0-server`, and `judge0-workers` (`judge0/judge0:1.13.1`) onto the shared `cforge-net` private bridge network, set `ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=true` and `ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=true` on Judge0 server and workers, and wired `web` to `JUDGE0_URL=http://judge0-server:2358`.
+2. `.env.example` — updated `JUDGE0_URL` to `http://judge0-server:2358` with comments explaining `http://localhost:2358` for `npm run dev` outside Docker.
+3. `docs/JUDGE0_SETUP.md`, `docs/DEPLOYMENT.md`, `README.md`, `STATUS.md` — documented one-command `docker-compose up -d --build` startup, the Windows/WSL2 cgroup-v2 `/box/main.c` workaround, and updated deployment status.
+
 ## Milestone 13 — Verification, commits, and pull request
 
 1. Generate Prisma client and validate/format the schema.

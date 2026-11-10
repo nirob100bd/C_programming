@@ -66,7 +66,7 @@ docker run --rm -e DATABASE_URL="postgresql://..." cforge-tools \
   sh -c "npx prisma generate && npx prisma migrate deploy && npx tsx prisma/seed-run.ts"
 ```
 
-`docker-compose.yml` wires PostgreSQL, that migration job, and the web container together for local runs. It publishes PostgreSQL on the host, uses development credentials, and omits TLS, so treat it as a developer convenience and not the production topology described below.
+`docker-compose.yml` wires CForge's PostgreSQL database, migration/seed job, web container, and the Judge0 CE compiler stack (`judge0-db`, `judge0-redis`, `judge0-server`, `judge0-workers`) together on a private Docker network (`cforge-net`) for local runs. It publishes ports on the host, uses development credentials, enables Judge0's per-process limits (`ENABLE_PER_PROCESS_AND_THREAD_*`) for Docker Desktop/cgroup-v2 compatibility, and omits TLS, so treat it as a developer convenience and not the production topology described below.
 
 ## Reverse proxy
 
