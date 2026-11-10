@@ -44,6 +44,30 @@ npm start
 
 Run migrations as a single release job before scaling new application instances. Back up the database before destructive future migrations.
 
+## Container image
+
+`Dockerfile` builds the Next.js standalone server as its default `runner` target:
+
+```bash
+docker build -t cforge:latest .
+docker run --rm -p 3000:3000 \
+  -e DATABASE_URL="postgresql://..." \
+  -e NEXTAUTH_SECRET="..." \
+  -e NEXTAUTH_URL="https://learn.example.com" \
+  cforge:latest
+```
+
+The image contains the build artifacts only; it does not bake in `DATABASE_URL`, `NEXTAUTH_SECRET`, or Judge0 credentials. Build-time placeholders satisfy `src/env.ts` and `prisma.config.ts` while `next build` runs, and every real value must come from the runtime environment.
+
+The `tools` target is the same dependency tree plus the schema and seed, used by the one-shot `migrate` service:
+
+```bash
+docker run --rm -e DATABASE_URL="postgresql://..." cforge-tools \
+  sh -c "npx prisma generate && npx prisma migrate deploy && npx tsx prisma/seed-run.ts"
+```
+
+`docker-compose.yml` wires PostgreSQL, that migration job, and the web container together for local runs. It publishes PostgreSQL on the host, uses development credentials, and omits TLS, so treat it as a developer convenience and not the production topology described below.
+
 ## Reverse proxy
 
 Terminate TLS and add, at minimum:
