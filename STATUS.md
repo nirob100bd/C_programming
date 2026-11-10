@@ -27,7 +27,9 @@
 - [x] Algorithm visualizer at `/labs/algorithms`: bubble sort, binary search, and breadth-first search replayed from pure frame generators (`src/lib/algorithm-steps.ts`) with Play/Pause, Step forward/back, Reset, a timeline slider, and ←/→/space keyboard control
 - [x] Pointer lab rebuilt on a small C execution model (`src/lib/memory-model.ts`): stack frame, `malloc`/`free`, real addresses, recycled blocks at a new address, and explicit use-after-free/double-free warnings
 - [x] Labs navigation became a dropdown (Pointer lab, Algorithms) with a mobile labs row; 147 tests across 18 suites now cover the frame generators, memory model, both lab pages, and the dropdown
-- [x] `Dockerfile` (standalone `runner` + `tools` targets), `docker-compose.yml` (PostgreSQL + one-shot migrate/seed + web), and `.dockerignore`, documented in README "Run with Docker" and `docs/DEPLOYMENT.md`
+- [x] `Dockerfile` (standalone `runner` + `tools` targets), `docker-compose.yml`, and `.dockerignore`, documented in README "Run with Docker" and `docs/DEPLOYMENT.md`
+- [x] Full-stack Docker Compose integration (`docker-compose.yml`): CForge (`db`, `migrate`, `web`) and Judge0 CE v1.13.1 (`judge0-db`, `judge0-redis`, `judge0-server`, `judge0-workers`) wired on the shared private `cforge-net` bridge network, with `JUDGE0_URL=http://judge0-server:2358` on `web` and the Windows/WSL2 cgroup-v2 workaround (`ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=true`, `ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=true`) enabled on `judge0-server` and `judge0-workers`
+- [x] Updated `.env.example`, `docs/JUDGE0_SETUP.md`, `docs/DEPLOYMENT.md`, and `README.md` for one-command `docker-compose up -d --build` startup and documented the Windows/WSL2 `/box/main.c` cgroup-v2 workaround
 
 ## In progress
 
@@ -46,13 +48,14 @@
 - Achievements are evaluated on demand after a run or submission. Passing steps and quizzes earn XP but do not trigger a check until the next run, submission, or achievements request, so step-kind badges can lag by one action.
 - Streaks use the server's local calendar day. Users in other time zones see day boundaries shifted.
 - Activity and progress snapshots need a production retention/pruning policy.
-- The Docker images were written and reviewed but never built in this workspace (no Docker daemon available), so `docker compose up --build` has not been executed here. The underlying `next build` + `output: "standalone"` server was built and HTTP-smoke-tested directly.
-- The Compose stack does not include Judge0; runs and submissions return HTTP 503 until `JUDGE0_URL` points at a reachable Judge0 CE instance.
+- The Docker Compose stack (`docker-compose.yml`) was reviewed and validated for YAML/configuration correctness, but has not been booted in this workspace (no Docker daemon available), so `docker-compose up -d --build` remains to be executed on a Docker host. The underlying `next build` + `output: "standalone"` application builds cleanly here.
 - No Judge0 daemon is available in this workspace, so real compilation and the browser/two-account acceptance flows that depend on judging remain external-service verification tasks. Unit/route tests do not simulate Judge0.
 
 ## Decisions made
 
-- The Arena-managed branch name is fixed, so this work stays on `arena/4b431a84-c-programming` instead of the requested `cforge/labs-and-deploy` (same substitution as the previous milestone's `cforge/curriculum-2`).
+- The Arena-managed branch name is fixed for this session, so the full-stack Docker integration stays on `arena/c32fe14e-c-programming` (branched from `main`) instead of creating `cforge/full-stack-docker` (same branch substitution as earlier milestones).
+- Judge0 CE `v1.13.1` (`judge0-db`, `judge0-redis`, `judge0-server`, `judge0-workers`) runs inline via environment variables on the shared `cforge-net` bridge network rather than requiring a mounted `judge0.conf`, and sets `ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=true` and `ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=true` so `isolate` works out of the box on Windows/WSL2 cgroup-v2 hosts without `/box/main.c` errors.
+- `web` sets `JUDGE0_URL=http://judge0-server:2358` directly in `docker-compose.yml` (matching `DATABASE_URL` using `db:5432`), so Compose networking still works if `.env` sets `http://localhost:2358` for `npm run dev` outside Docker.
 - Lab animations render pre-computed frames rather than animating ad hoc UI state, so the visualizer cannot display a state the algorithm never visits.
 - The pointer lab is a deterministic teaching model, not an emulator: it models one allocation, a fixed 16-byte heap stride, and a reuse offset so a recycled block is visibly at a different address.
 - `prisma/seed.ts` is a side-effect-free module with a typed catalog and `prisma/seed-run.ts` as its CLI entry point, so tests and the offline verifier can import the content without a database.
@@ -68,8 +71,8 @@
 
 ## Next
 
-1. Run `docker compose up --build` on a machine with a Docker daemon and confirm the migrate/web healthchecks.
-2. Run the documented Judge0 and browser/two-account acceptance checklist in an environment with Judge0 services.
+1. Run `docker-compose up -d --build` on a Docker host (including Windows/WSL2 Docker Desktop) and confirm all services (`db`, `migrate`, `judge0-db`, `judge0-redis`, `judge0-server`, `judge0-workers`, `web`) become healthy and execute C submissions end-to-end.
+2. Run the documented Judge0 and browser/two-account acceptance checklist in an environment with the Compose stack running.
 3. Add a production-grade distributed rate limiter and retention jobs.
 4. Expand World 5–12 lesson/assessment content in the next curriculum milestone.
 5. Add adaptive next-action recommendations.

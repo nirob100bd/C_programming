@@ -1,13 +1,15 @@
-# CForge local stack: PostgreSQL + one-shot migrate/seed + the Next.js app.
+# CForge full-stack local deployment:
+#   - CForge: PostgreSQL + one-shot migrate/seed + Next.js web server
+#   - Judge0 CE v1.13.1: db + redis + server + workers
 #
-#   docker compose up --build
+# Usage:
+#   docker-compose up -d --build
 #   open http://localhost:3000
 #
-# Judge0 is intentionally *not* part of this stack. CForge never executes C in
-# the Next.js process; without JUDGE0_URL every run/submission returns a clear
-# HTTP 503 instead of a fabricated verdict. Follow docs/JUDGE0_SETUP.md and set
-# JUDGE0_URL (and JUDGE0_API_KEY) to a reachable Judge0 CE instance to enable
-# real compilation.
+# All services communicate over the shared private `cforge-net` bridge network.
+# The Judge0 server and workers enable per-process time/memory limits so
+# `isolate` runs without cgroup v1 (required on Windows Docker Desktop / WSL2
+# and modern Linux cgroup-v2 hosts, avoiding `/box/main.c` Internal Errors).
 
 services:
   db:
@@ -25,6 +27,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - cforge-net
     restart: unless-stopped
 
   # Applies committed Prisma migrations and the idempotent content seed, then
@@ -39,7 +43,103 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - cforge-net
     restart: "no"
+
+  judge0-db:
+    image: postgres:16.2
+    environment:
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: "${JUDGE0_POSTGRES_PASSWORD:-judge0password}"
+    volumes:
+      - judge0-db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0 -d judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cforge-net
+    restart: unless-stopped
+
+  judge0-redis:
+    image: redis:7.2.4
+    command:
+      - bash
+      - -c
+      - 'docker-entrypoint.sh --appendonly no --requirepass "$$REDIS_PASSWORD"'
+    environment:
+      REDIS_PASSWORD: "${JUDGE0_REDIS_PASSWORD:-judge0redispassword}"
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cforge-net
+    restart: unless-stopped
+
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    privileged: true
+    ports:
+      - "2358:2358"
+    environment:
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: "${JUDGE0_POSTGRES_PASSWORD:-judge0password}"
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "${JUDGE0_REDIS_PASSWORD:-judge0redispassword}"
+      AUTHN_TOKEN: "${JUDGE0_API_KEY:-}"
+      # Windows/WSL2 cgroup-v2 workaround: bypass isolate --cg hierarchy
+      ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT: "true"
+      ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT: "true"
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:2358/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+    networks:
+      - cforge-net
+    restart: unless-stopped
+
+  judge0-workers:
+    image: judge0/judge0:1.13.1
+    command: ["./scripts/workers"]
+    privileged: true
+    environment:
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: "${JUDGE0_POSTGRES_PASSWORD:-judge0password}"
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "${JUDGE0_REDIS_PASSWORD:-judge0redispassword}"
+      # Windows/WSL2 cgroup-v2 workaround: bypass isolate --cg hierarchy
+      ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT: "true"
+      ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT: "true"
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+      judge0-server:
+        condition: service_healthy
+    networks:
+      - cforge-net
+    restart: unless-stopped
 
   web:
     build:
@@ -49,7 +149,7 @@ services:
       DATABASE_URL: postgresql://cforge:cforge@db:5432/cforge?schema=public
       NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-dev-compose-secret-change-before-deploying}"
       NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
-      JUDGE0_URL: "${JUDGE0_URL:-}"
+      JUDGE0_URL: http://judge0-server:2358
       JUDGE0_API_KEY: "${JUDGE0_API_KEY:-}"
       JUDGE0_LANGUAGE_ID: "${JUDGE0_LANGUAGE_ID:-50}"
       NEXT_PUBLIC_APP_NAME: "${NEXT_PUBLIC_APP_NAME:-CForge}"
@@ -61,13 +161,22 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      judge0-server:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
       interval: 30s
       timeout: 5s
       start_period: 25s
       retries: 3
+    networks:
+      - cforge-net
     restart: unless-stopped
+
+networks:
+  cforge-net:
+    driver: bridge
 
 volumes:
   cforge-db:
+  judge0-db:
