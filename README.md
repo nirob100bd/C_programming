@@ -12,7 +12,7 @@ The current release includes:
 - Monaco lesson and arena editors plus persistent multi-file project storage.
 - Real C compilation through a separately deployed Judge0 CE service—CForge never executes user code in the Next.js process.
 - Public examples and private hidden tests, progressive hints, idempotent XP awards, rank progression, weighted mastery evidence, and revision scheduling.
-- An interactive pointer/memory laboratory.
+- Two interactive laboratories: a stack/heap pointer simulator (`malloc`, `free`, dangling and double-free demos) and a step-through algorithm visualizer for bubble sort, binary search, and breadth-first search that plays back the real frames the algorithms visit.
 - Responsive light/dark UI and keyboard-accessible navigation.
 - Unit and route coverage for every API handler and core business-logic module.
 
@@ -23,7 +23,7 @@ See [`STATUS.md`](STATUS.md) for the exact shipped scope and known limitations.
 - Node.js 20.19+ (Node.js 22 LTS is recommended)
 - npm 10+
 - PostgreSQL 16+
-- Docker with Compose for self-hosted Judge0 CE
+- Docker with Compose to run the whole stack, and for self-hosted Judge0 CE
 
 ## Local setup
 
@@ -69,6 +69,47 @@ See [`STATUS.md`](STATUS.md) for the exact shipped scope and known limitations.
 
    Open <http://localhost:3000>, create an account, and begin at World 0.
 
+## Run with Docker
+
+The repository ships a `Dockerfile` and a `docker-compose.yml` that bring up PostgreSQL, apply the committed migrations plus the idempotent content seed, and start the production Next.js server.
+
+```bash
+docker compose up --build
+```
+
+Then open <http://localhost:3000> and create an account.
+
+What the stack contains:
+
+| Service | Role |
+| --- | --- |
+| `db` | PostgreSQL 16 with a named `cforge-db` volume, health-checked before anything else starts. |
+| `migrate` | One-shot `prisma generate` + `prisma migrate deploy` + content seed. It exits successfully and is not restarted. |
+| `web` | The `output: "standalone"` Next.js server on port 3000, started only after `db` is healthy and `migrate` succeeded. |
+
+Useful variants:
+
+```bash
+# Rebuild after changing application code
+docker compose up --build
+
+# Follow application logs only
+docker compose logs -f web
+
+# Re-run migrations/seed on demand (for example after pulling new content)
+docker compose run --rm migrate
+
+# Stop everything but keep the database volume
+docker compose down
+
+# Stop everything and delete the local database
+docker compose down -v
+```
+
+Configuration: copy `.env.example` to `.env` (or export the variables in your shell) so Compose can pass them to the containers. Compose reads `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `JUDGE0_URL`, `JUDGE0_API_KEY`, `JUDGE0_LANGUAGE_ID`, and `NEXT_PUBLIC_APP_NAME` from the environment and falls back to development defaults; for anything beyond local experimentation set a real 32+ character `NEXTAUTH_SECRET`.
+
+The Compose file deliberately does **not** start Judge0. CForge never compiles C inside the Next.js process, so with `JUDGE0_URL` unset the run and submission endpoints return a clear HTTP 503 instead of a fabricated verdict. To enable real compilation, follow [`docs/JUDGE0_SETUP.md`](docs/JUDGE0_SETUP.md) and point `JUDGE0_URL` at that service. This stack is a convenience for local runs, not a hardened production deployment — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Environment variables
 
 | Variable | Required | Purpose |
@@ -100,6 +141,7 @@ Never commit `.env`. The repository tracks only `.env.example`.
 | `npm run prisma:seed` | Idempotently seed catalog content. |
 | `npm run verify:content` | Compile and run every reference solution and lesson exercise with local GCC (no Judge0 or database needed). |
 | `npm run prisma:studio` | Open Prisma Studio. |
+| `docker compose up --build` | Build and run PostgreSQL, migrations/seed, and the app. |
 
 ## Architecture
 
@@ -111,6 +153,7 @@ Never commit `.env`. The repository tracks only `.env.example`.
 - `prisma/seed.ts` — append-friendly idempotent content catalog (importable, no side effects); `prisma/seed-run.ts` is the CLI entry point.
 - `scripts/verify-seed.ts` — offline curriculum verifier: compiles every reference program with GCC and checks all declared expected output.
 - `__tests__` — business logic, all route methods, auth, and shared component tests.
+- `Dockerfile` / `docker-compose.yml` — production image plus a local PostgreSQL + migrate + web stack.
 - `docs` — Judge0, deployment, and acceptance-test operations.
 
 ### Security boundaries

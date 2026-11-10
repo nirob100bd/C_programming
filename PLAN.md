@@ -150,6 +150,18 @@ Every exported API method and every core business-logic function receives automa
 102. `STATUS.md` — Done / In progress / Known issues / Decisions / Next.
 103. `AGENTS.md` — concise repository operating guide for future coding sessions.
 
+## Milestone 14 — Interactive labs and containerized local stack (phase 3)
+
+Added after the initial plan, per the follow-up "labs and deploy" request:
+
+1. `src/lib/algorithm-steps.ts` — pure frame generators for bubble sort, binary search, and breadth-first search, so the UI replays states the algorithms really visit.
+2. `src/lib/memory-model.ts` — a small C execution model: stack frame for `n`/`p`, heap block from `malloc`, writes through `p`, `free`, dangling/recycled addresses, and explicit use-after-free/double-free warnings.
+3. `src/app/(app)/labs/algorithms/page.tsx` — step-through visualizer with Play, Pause, Step forward/back, Reset, a timeline slider, and keyboard control.
+4. `src/app/(app)/labs/pointers/page.tsx` — pointer lab rebuilt on the memory model, showing stack slots, per-word heap addresses, the executing source line, and allocation statistics.
+5. `src/components/Nav.tsx` — Labs becomes a dropdown with Pointer lab and Algorithms, plus a dedicated mobile labs row.
+6. `Dockerfile`, `docker-compose.yml`, `.dockerignore` — standalone production image, plus a PostgreSQL + migrate/seed + web stack (`docker compose up --build`).
+7. `README.md`, `docs/DEPLOYMENT.md`, `STATUS.md` — Docker usage and refreshed lab scope.
+
 ## Milestone 13 — Verification, commits, and pull request
 
 1. Generate Prisma client and validate/format the schema.
