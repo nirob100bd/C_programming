@@ -15,7 +15,8 @@ import {
   LogOut,
   Map,
   Settings,
-  Swords
+  Swords,
+  Trophy
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const links = [
   { href: "/ide", label: "IDE", icon: Braces },
   { href: "/labs/pointers", label: "Labs", icon: FlaskConical },
   { href: "/mastery", label: "Mastery", icon: BarChart3 },
+  { href: "/achievements", label: "Achievements", icon: Trophy },
   { href: "/reference", label: "Reference", icon: BookOpen },
   { href: "/projects", label: "Projects", icon: Boxes },
   { href: "/history", label: "History", icon: History },

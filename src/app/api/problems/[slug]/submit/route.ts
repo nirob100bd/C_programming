@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { fail, ok, parseBody } from "@/lib/api";
 import { judgeAgainstTests } from "@/lib/judge";
-import { awardXp } from "@/lib/xp";
+import { awardXp, checkAchievements } from "@/lib/xp";
 import { recordEvidence, scheduleRevision } from "@/lib/mastery";
 import { log } from "@/lib/activity";
 
@@ -69,8 +69,10 @@ export async function POST(
       submissionId: submission.id,
       verdict: result.verdict
     });
+    // Achievement rules read the submission that was just persisted.
+    const achievements = await checkAchievements(userId).catch(() => []);
 
-    return ok({ submissionId: submission.id, ...result });
+    return ok({ submissionId: submission.id, achievements, ...result });
   } catch (error) {
     return fail(error);
   }

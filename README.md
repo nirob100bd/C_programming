@@ -8,7 +8,7 @@ The current release includes:
 
 - Credentials accounts with bcrypt password hashes and 30-day JWT sessions.
 - User-scoped progress, code snapshots, exact lesson resume, activity history, settings, and JSON export.
-- A World 0–10 curriculum slice, a complete skill catalog for Worlds 0–12, achievements, and an in-app C reference.
+- A deep Worlds 0–4 curriculum (30 lessons, 104 steps), a complete skill catalog for Worlds 0–12, 18 judged problems, 36 data-driven achievements, and a 50-entry C standard library reference.
 - Monaco lesson and arena editors plus persistent multi-file project storage.
 - Real C compilation through a separately deployed Judge0 CE service—CForge never executes user code in the Next.js process.
 - Public examples and private hidden tests, progressive hints, idempotent XP awards, rank progression, weighted mastery evidence, and revision scheduling.
@@ -98,6 +98,7 @@ Never commit `.env`. The repository tracks only `.env.example`.
 | `npm run prisma:migrate -- --name <name>` | Create/apply a development migration. |
 | `npm run prisma:deploy` | Apply committed migrations in deployment. |
 | `npm run prisma:seed` | Idempotently seed catalog content. |
+| `npm run verify:content` | Compile and run every reference solution and lesson exercise with local GCC (no Judge0 or database needed). |
 | `npm run prisma:studio` | Open Prisma Studio. |
 
 ## Architecture
@@ -107,7 +108,8 @@ Never commit `.env`. The repository tracks only `.env.example`.
 - `src/generated/prisma` — generated Prisma 7 client checked in for reproducible type/build behavior.
 - `prisma/schema.prisma` — complete persistence model.
 - `prisma/migrations` — committed PostgreSQL migration history.
-- `prisma/seed.ts` — append-friendly idempotent content seed.
+- `prisma/seed.ts` — append-friendly idempotent content catalog (importable, no side effects); `prisma/seed-run.ts` is the CLI entry point.
+- `scripts/verify-seed.ts` — offline curriculum verifier: compiles every reference program with GCC and checks all declared expected output.
 - `__tests__` — business logic, all route methods, auth, and shared component tests.
 - `docs` — Judge0, deployment, and acceptance-test operations.
 
