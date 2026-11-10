@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { fail, ok, parseBody } from "@/lib/api";
 import { runC } from "@/lib/judge";
 import { log } from "@/lib/activity";
-import { awardXp } from "@/lib/xp";
+import { awardXp, checkAchievements } from "@/lib/xp";
 import { recordEvidence } from "@/lib/mastery";
 
 const runSchema = z.object({
@@ -66,7 +66,9 @@ export async function POST(request: Request) {
       verdict: result.verdict,
       lessonPassed
     });
-    return ok({ submissionId: submission.id, lessonPassed, ...result });
+    // Milestones unlock immediately: a run is the first achievement trigger.
+    const achievements = await checkAchievements(userId).catch(() => []);
+    return ok({ submissionId: submission.id, lessonPassed, achievements, ...result });
   } catch (error) {
     return fail(error);
   }

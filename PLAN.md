@@ -116,7 +116,9 @@ Create files in this order:
 
 ## Milestone 10 — Seed curriculum and challenge content
 
-84. `prisma/seed.ts` — idempotent skills, achievements, references, World 0–10 lesson slice, and judged problems.
+84. `prisma/seed.ts` — idempotent skills, achievements, references, Worlds 0–10 lessons, and judged problems; `prisma/seed-run.ts` is the CLI entry point.
+84a. `scripts/verify-seed.ts` — offline GCC verifier for lesson exercises and problem reference solutions.
+84b. `__tests__/curriculum.test.ts` and `__tests__/achievements.test.ts` — catalog integrity and achievement-rule coverage.
 
 The seed is append-only in structure: content constants are independent and every entity is upserted. Hidden test cases are synchronized without exposing expected output through public APIs.
 
@@ -135,6 +137,7 @@ The seed is append-only in structure: content constants are independent and ever
 95. `__tests__/routes-judge.test.ts` — run, submissions, problems, submit, and hint routes.
 96. `__tests__/routes-content.test.ts` — notes, bookmarks, reference, and project routes.
 97. `__tests__/components.test.tsx` — shell/common component behavior.
+98. `src/app/(app)/achievements/page.tsx` — earned/locked achievement grid.
 
 Every exported API method and every core business-logic function receives automated coverage. Database-independent unit tests mock Prisma; migration/seed smoke checks are documented separately because they require PostgreSQL.
 

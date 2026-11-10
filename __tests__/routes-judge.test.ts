@@ -3,6 +3,7 @@ const mockRunC = jest.fn();
 const mockJudgeAgainstTests = jest.fn();
 const mockLog = jest.fn();
 const mockAwardXp = jest.fn();
+const mockCheckAchievements = jest.fn();
 const mockRecordEvidence = jest.fn();
 const mockScheduleRevision = jest.fn();
 
@@ -15,7 +16,10 @@ jest.mock("@/lib/judge", () => ({
   judgeAgainstTests: (...args: unknown[]) => mockJudgeAgainstTests(...args)
 }));
 jest.mock("@/lib/activity", () => ({ log: (...args: unknown[]) => mockLog(...args) }));
-jest.mock("@/lib/xp", () => ({ awardXp: (...args: unknown[]) => mockAwardXp(...args) }));
+jest.mock("@/lib/xp", () => ({
+  awardXp: (...args: unknown[]) => mockAwardXp(...args),
+  checkAchievements: (...args: unknown[]) => mockCheckAchievements(...args)
+}));
 jest.mock("@/lib/mastery", () => ({
   recordEvidence: (...args: unknown[]) => mockRecordEvidence(...args),
   scheduleRevision: (...args: unknown[]) => mockScheduleRevision(...args)
@@ -48,6 +52,7 @@ describe("judge and arena API routes", () => {
     mockJudgeAgainstTests.mockReset().mockResolvedValue(accepted);
     mockLog.mockReset().mockResolvedValue(undefined);
     mockAwardXp.mockReset().mockResolvedValue(undefined);
+    mockCheckAchievements.mockReset().mockResolvedValue([]);
     mockRecordEvidence.mockReset().mockResolvedValue(undefined);
     mockScheduleRevision.mockReset().mockResolvedValue(undefined);
   });
@@ -64,6 +69,7 @@ describe("judge and arena API routes", () => {
     expect(mockPrisma.submission.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ userId: "user-1", verdict: "Accepted" })
     }));
+    expect(mockCheckAchievements).toHaveBeenCalledWith("user-1");
   });
 
   it("lists only the authenticated user's submissions", async () => {
@@ -129,6 +135,8 @@ describe("judge and arena API routes", () => {
     expect(mockJudgeAgainstTests).toHaveBeenCalledWith("source", [{ input: "12", expected: "3" }], 2000, 128000);
     expect(mockAwardXp).toHaveBeenCalledWith("user-1", 40, "problem.accepted", "problem-1");
     expect(mockRecordEvidence).toHaveBeenCalledWith("user-1", "algo.greedy", expect.objectContaining({ correct: true, kind: "hintless" }));
+    expect(mockCheckAchievements).toHaveBeenCalledWith("user-1");
+    expect(await responseJson(response)).toMatchObject({ achievements: [] });
   });
 
   it("unlocks progressive hints in order", async () => {
