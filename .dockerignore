@@ -1,0 +1,38 @@
+# Version control and local state
+.git
+.gitignore
+.github
+
+# Dependencies and build output: always rebuilt inside the image
+node_modules
+.next
+out
+build
+dist
+coverage
+
+# Local configuration and secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+*.pem
+
+# Local databases and logs
+*.db
+*.db-journal
+*.log
+npm-debug.log*
+
+# Tests, docs, and editor cruft are not needed to run the app
+coverage
+docs
+__tests__
+*.tsbuildinfo
+.vscode
+.idea
+.DS_Store
+README.md
+STATUS.md
+PLAN.md
+AGENTS.md
